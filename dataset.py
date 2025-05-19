@@ -103,8 +103,8 @@ def collate_fn(batch):
     target_length = [item['target_length'] for item in batch]
     
     # Pad sequences
-    source_padded = pad_sequence(source, batch_first=True, padding_value=0)
-    target_padded = pad_sequence(target, batch_first=True, padding_value=0)
+    source_padded = pad_sequence(source, batch_first=True, padding_value=1)
+    target_padded = pad_sequence(target, batch_first=True, padding_value=1)
     
     # Store original texts for evaluation
     source_text = [item['source_text'] for item in batch]
