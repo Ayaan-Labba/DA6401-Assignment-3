@@ -84,30 +84,69 @@ def evaluate(model, device, dataloader, criterion):
     return epoch_loss / len(dataloader)
 
 def transliterate(model, device, dataset, source_text, max_length=50):
+    """
+    Transliterate a source text to the target script.
+    
+    Args:
+        model: Trained Seq2Seq model
+        device: Device to run the model on
+        dataset: TransliterationDataset
+        source_text: Source text to transliterate
+        max_length: Maximum length of the target sequence
+    
+    Returns:
+        target_text: Transliterated text
+    """
     model.eval()
     
-    # Convert source text to indices with <SOS> and <EOS>
+    # Convert source text to indices
     source_indices = [dataset.source_char_to_idx['<SOS>']] + \
                      [dataset.source_char_to_idx[char] for char in source_text] + \
                      [dataset.source_char_to_idx['<EOS>']]
     
-    # Create input tensor
+    # Create tensor
     source_tensor = torch.LongTensor(source_indices).unsqueeze(0).to(device)
     source_length = torch.LongTensor([len(source_indices)])
     
-    # Get SOS and EOS indices
+    # Get SOS and EOS tokens
     sos_idx = dataset.target_char_to_idx['<SOS>']
     eos_idx = dataset.target_char_to_idx['<EOS>']
     
-    # Use the model's inference method
     with torch.no_grad():
+        # Use the model's inference method
         predicted_indices = model.inference(source_tensor, source_length, sos_idx, eos_idx, max_length)
     
-    # Convert indices to characters, ignoring special tokens
+    # Convert indices to characters
     target_chars = [dataset.target_idx_to_char[idx] for idx in predicted_indices 
-                    if idx != sos_idx and idx != eos_idx]
+                   if idx != sos_idx and idx != eos_idx]
     
-    return ''.join(target_chars)
+    # Join characters to form target text
+    target_text = ''.join(target_chars)
+    
+    return target_text
+
+# Calculate the number of correct predictions
+def calculate_accuracy(model, test_dataloader, dataset):
+    model.eval()
+    correct = 0
+    total = 0
+    predictions = []
+    
+    with torch.no_grad():
+        for batch in test_dataloader:
+            source_texts = batch['source_text']
+            target_texts = batch['target_text']
+            
+            for i, source_text in enumerate(source_texts):
+                pred_text = transliterate(model, dataset, source_text)
+                predictions.append((source_text, pred_text, target_texts[i]))
+                
+                if pred_text == target_texts[i]:
+                    correct += 1
+                total += 1
+    
+    accuracy = correct / total
+    return accuracy, predictions
 
 # # Inference function
 # def transliterate(model, device, dataset, source_text, max_length=50):
@@ -183,26 +222,3 @@ def transliterate(model, device, dataset, source_text, max_length=50):
 #     target_text = ''.join(target_chars)
     
 #     return target_text
-
-# Calculate the number of correct predictions
-def calculate_accuracy(model, test_dataloader, dataset):
-    model.eval()
-    correct = 0
-    total = 0
-    predictions = []
-    
-    with torch.no_grad():
-        for batch in test_dataloader:
-            source_texts = batch['source_text']
-            target_texts = batch['target_text']
-            
-            for i, source_text in enumerate(source_texts):
-                pred_text = transliterate(model, dataset, source_text)
-                predictions.append((source_text, pred_text, target_texts[i]))
-                
-                if pred_text == target_texts[i]:
-                    correct += 1
-                total += 1
-    
-    accuracy = correct / total
-    return accuracy, predictions
