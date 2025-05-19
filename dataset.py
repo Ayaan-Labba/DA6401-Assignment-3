@@ -21,7 +21,11 @@ class TransliterationDataset(Dataset):
             data_path: Path to the dataset
             max_len: Maximum length of sequences
         """
-        self.data = pd.read_csv(data_path, sep='\t', header=None)
+        self.data = pd.read_csv(data_path, sep='\t', header=None, dtype=str)
+        self.data.dropna(inplace=True)
+        self.data[0] = self.data[0].str.strip()
+        self.data[1] = self.data[1].str.strip()
+
         self.max_len = max_len
         
         # Build vocabulary for source and target languages
