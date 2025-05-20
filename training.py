@@ -126,7 +126,7 @@ def transliterate(model, device, dataset, source_text, max_length=50):
     return target_text
 
 # Calculate the number of correct predictions
-def calculate_accuracy(model, test_dataloader, dataset):
+def calculate_accuracy(model, device, test_dataloader, dataset):
     model.eval()
     correct = 0
     total = 0
@@ -138,7 +138,7 @@ def calculate_accuracy(model, test_dataloader, dataset):
             target_texts = batch['target_text']
             
             for i, source_text in enumerate(source_texts):
-                pred_text = transliterate(model, dataset, source_text)
+                pred_text = transliterate(model, device, dataset, source_text)
                 predictions.append((source_text, pred_text, target_texts[i]))
                 
                 if pred_text == target_texts[i]:
