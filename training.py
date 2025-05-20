@@ -18,6 +18,7 @@ set_seed(42)
 def train(model, device, dataloader, optimizer, criterion, clip=1.0, teacher_forcing_ratio=0.5):
     model.train()
     epoch_loss = 0
+    total_tokens = 0  # Count how many target tokens we're summing over
     
     for batch in dataloader:
         # Move batch to device
@@ -51,15 +52,16 @@ def train(model, device, dataloader, optimizer, criterion, clip=1.0, teacher_for
         optimizer.step()
         
         epoch_loss += loss.item()
+
+        total_tokens += target.size(0)  # Total number of tokens
     
-    return epoch_loss / len(dataloader)
+    return epoch_loss / total_tokens
 
 # Evaluation function
 def evaluate(model, device, dataloader, criterion):
     model.eval()
     epoch_loss = 0
-    all_predictions = []
-    all_targets = []
+    total_tokens = 0  # Count how many target tokens we're summing over
     
     with torch.no_grad():
         for batch in dataloader:
@@ -80,8 +82,10 @@ def evaluate(model, device, dataloader, criterion):
             loss = criterion(output, target)
             
             epoch_loss += loss.item()
+
+            total_tokens += target.size(0)  # Total number of tokens
     
-    return epoch_loss / len(dataloader)
+    return epoch_loss / total_tokens
 
 def transliterate(model, device, dataset, source_text, max_length=50):
     """
