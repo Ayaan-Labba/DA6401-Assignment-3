@@ -1,7 +1,6 @@
 
 import torch
 import torch.nn as nn
-import torch.nn.functional as F
 import random
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
 
@@ -14,9 +13,8 @@ def set_seed(seed=42):
 
 set_seed(42)
 
-# Basic Encoder class
 class Encoder(nn.Module):
-    def __init__(self, input_size, embedding_size, hidden_size, n_layers=1, dropout=0, cell_type='lstm'):
+    def __init__(self, input_size, embedding_size, hidden_size, n_layers=1, dropout=0, cell_type='rnn'):
         """
         Args:
             input_size: Size of the vocabulary
@@ -92,7 +90,6 @@ class Encoder(nn.Module):
             outputs, _ = pad_packed_sequence(outputs, batch_first=True)
             return outputs, hidden
 
-# Basic Decoder class
 class Decoder(nn.Module):
     def __init__(self, output_size, embedding_size, hidden_size, n_layers=1, dropout=0, cell_type='lstm'):
         """
@@ -170,7 +167,6 @@ class Decoder(nn.Module):
             prediction = self.fc_out(output.squeeze(1))  # [batch_size, output_size]
             return prediction, hidden
 
-# Seq2Seq model
 class Seq2Seq(nn.Module):
     def __init__(self, encoder, decoder, device):
         super(Seq2Seq, self).__init__()

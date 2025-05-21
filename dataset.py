@@ -2,11 +2,9 @@ import torch
 import pandas as pd
 import numpy as np
 import random
-import os
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset
 from torch.nn.utils.rnn import pad_sequence
 
-# Set seeds for reproducibility
 def set_seed(seed=42):
     """Set seeds for reproducibility in Python, NumPy and PyTorch"""
     random.seed(seed)
@@ -53,20 +51,14 @@ class TransliterationDataset(Dataset):
             for char in row[0]:  # target (Devanagari)
                 self.target_chars.add(char)
         
-        # Add special tokens
-        self.pad_token = '<PAD>'
-        self.sos_token = '<SOS>'
-        self.eos_token = '<EOS>'
-        self.unk_token = '<UNK>'
-        
-        special_tokens = [self.pad_token, self.sos_token, self.eos_token, self.unk_token]
+        special_tokens = ['<PAD>', '<SOS>', '<EOS>', '<UNK>']
         for token in special_tokens:
             self.source_chars.add(token)
             self.target_chars.add(token)
         
         # Create character to index mappings - ensure special tokens have fixed positions
-        self.source_char_to_idx = {self.pad_token: 0, self.sos_token: 1, self.eos_token: 2, self.unk_token: 3}
-        self.target_char_to_idx = {self.pad_token: 0, self.sos_token: 1, self.eos_token: 2, self.unk_token: 3}
+        self.source_char_to_idx = {'<PAD>': 0, '<SOS>': 1, '<EOS>': 2, '<UNK>': 3}
+        self.target_char_to_idx = {'<PAD>': 0, '<SOS>': 1, '<EOS>': 2, '<UNK>': 3}
         
         # Add remaining characters
         idx = 4
@@ -97,20 +89,20 @@ class TransliterationDataset(Dataset):
         target_text = self.data.iloc[idx, 0]  # Malayalam
         
         # Convert to indices and add SOS/EOS tokens
-        source_indices = [self.source_char_to_idx[self.sos_token]] + \
-                        [self.source_char_to_idx.get(char, self.source_char_to_idx[self.unk_token]) for char in source_text] + \
-                        [self.source_char_to_idx[self.eos_token]]
+        source_indices = [self.source_char_to_idx['<SOS>']] + \
+                        [self.source_char_to_idx.get(char, self.source_char_to_idx['<UNK>']) for char in source_text] + \
+                        [self.source_char_to_idx['<EOS>']]
         
-        target_indices = [self.target_char_to_idx[self.sos_token]] + \
-                        [self.target_char_to_idx.get(char, self.target_char_to_idx[self.unk_token]) for char in target_text] + \
-                        [self.target_char_to_idx[self.eos_token]]
+        target_indices = [self.target_char_to_idx['<SOS>']] + \
+                        [self.target_char_to_idx.get(char, self.target_char_to_idx['<UNK>']) for char in target_text] + \
+                        [self.target_char_to_idx['<EOS>']]
         
         # Truncate if too long (keep SOS and add EOS)
         if len(source_indices) > self.max_len:
-            source_indices = source_indices[:self.max_len-1] + [self.source_char_to_idx[self.eos_token]]
+            source_indices = source_indices[:self.max_len-1] + [self.source_char_to_idx['<EOS>']]
             
         if len(target_indices) > self.max_len:
-            target_indices = target_indices[:self.max_len-1] + [self.target_char_to_idx[self.eos_token]]
+            target_indices = target_indices[:self.max_len-1] + [self.target_char_to_idx['<EOS>']]
         
         # Create tensors
         source_tensor = torch.LongTensor(source_indices)
@@ -152,8 +144,8 @@ class TransliterationDataset(Dataset):
         text = []
         for idx in indices:
             char = idx_to_char[idx]
-            if char in [self.pad_token, self.sos_token, self.eos_token]:
-                if char == self.eos_token:
+            if char in ['<PAD>', '<SOS>', '<EOS>']:
+                if char == '<EOS>':
                     break  # Stop at EOS
                 continue  # Skip other special tokens
             text.append(char)
