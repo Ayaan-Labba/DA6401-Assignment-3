@@ -58,8 +58,6 @@ def train(model, device, dataloader, optimizer, criterion, clip=1.0, teacher_for
 def evaluate(model, device, dataloader, criterion):
     model.eval()
     epoch_loss = 0
-    all_predictions = []
-    all_targets = []
     
     with torch.no_grad():
         for batch in dataloader:

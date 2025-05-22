@@ -3,6 +3,9 @@ import torch.nn as nn
 import torch.nn.functional as F
 import random
 from torch.nn.utils.rnn import pack_padded_sequence, pad_packed_sequence
+import matplotlib.pyplot as plt
+import numpy as np
+import seaborn as sns
 
 # Set seeds for reproducibility
 def set_seed(seed=42):
@@ -387,9 +390,6 @@ def plot_attention(attention, source_chars, target_chars, title="Attention Weigh
         target_chars: List of target characters
         title: Title of the plot
     """
-    import matplotlib.pyplot as plt
-    import numpy as np
-    import seaborn as sns
     
     plt.figure(figsize=(10, 8))
     sns.heatmap(attention, xticklabels=source_chars, yticklabels=target_chars, cmap="YlGnBu")
