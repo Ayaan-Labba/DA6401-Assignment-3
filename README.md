@@ -2,52 +2,164 @@
 This project implements a sequence-to-sequence (Seq2Seq) RNN model for character-level transliteration using the Dakshina dataset. The system can transliterate text from Latin script to Malayalam script.
 
 ## Project Structure
-├── dataset.py          # Dataset handling and preprocessing
-├── vanilla_model.py    # Seq2Seq model implementation (Encoder-Decoder)
-├── training.py         # Training, evaluation, and inference functions
-├── README.md          # This file
-└── [Jupyter Notebook] # Main training and experimentation notebook
+```
+├── predictions_attention/
+├── predictions_vanilla/
+├── dataset.py                  # Dataset handling and preprocessing
+├── vanilla_model.py            # Vanilla Seq2Seq model implementation (Encoder-Decoder)
+├── training.py                 # Training, evaluation, and inference functions for vanilla model
+├── attention_model.py          # Attention-based Seq2Seq model implementation
+├── training_attention.py       # Training, evaluation, and inference functions for attention model
+├── visualize_attention.py      # Attention visualization utilities
+├── README.md                   # This file
+├── vanilla.ipynb               # Main training and experimentation notebook for vanilla models
+├── attention.ipynb             # Main training and experimentation notebook for attention models
+├── best_vanilla_model.pth      # Best vanilla model weights obtained from sweep
+├── best_attention_model.pth    # Best attention model weights obtained from sweep
+└── .gitignore
+```
 
 ## Requirements
 Run `pip install -r requirements.txt to install all the required libraries to run this project`
 
-
-Data Structure:
+### Data Structure:
 The model expects data in the following format:
-target_script_word    latin_script_word
-अजनबी                ajanabee
-घर                   ghar
+```
+अजनबी    ajanabee
+घर  ghar
+```
 Column 0: Target script (e.g., Devanagari, Malayalam)
 Column 1: Source script (Latin/Roman)
+Both columns are seperated by a tab
 
-## Base Files
-1. Dataset (dataset.py)
-`TransliterationDataset` Class:
-- Handles data loading and preprocessing
-- Creates character-level vocabularies for source and target languages
-- Implements special tokens: <PAD>, <SOS>, <EOS>, <UNK>
-- Provides encoding/decoding functionality
+## Function Files
+### 1. Dataset (dataset.py)
+1. `TransliterationDataset` Class:
+    - Purpose: Handles data loading and preprocessing for character-level transliteration
+    - Functionality: Creates character-level vocabularies for both source and target languages
+    - Special Tokens: Implements <PAD>, <SOS>, <EOS>, <UNK> tokens with fixed indices
+    - Preprocessing: Strips whitespace, applies lowercase conversion, handles missing data
+    - Vocabulary Building: Creates bidirectional character-to-index mappings for both languages
+    - Sequence Processing: Adds start/end tokens, handles sequence truncation based on max_len
+    - Encoding/Decoding: Provides methods to convert between text and numerical representations
+    - Key Methods:
+        - `__init__()`: Initializes dataset, builds vocabularies, processes data file
+        - `__len__()`: Returns dataset size
+        - `__getitem__()`: Returns processed sample with source/target tensors and metadata
+        - `get_vocab_size()`: Returns vocabulary size for source or target language
+        - `decode_indices()`: Converts numerical indices back to readable text
 
-Key Parameters:
-- data_path: Path to the dataset file
-- max_len: Maximum sequence length (default: 50)
-- lowercase: Whether to lowercase Latin text (default: True)
+2. `collate_fn` Function:
+    - Purpose: Custom batch processing for DataLoader
+    - Sorting: Sorts batch by sequence length for efficient packed sequence processing
+    - Padding: Pads sequences to uniform length within batch using PAD tokens
+    - Output: Returns batched tensors with source, target, lengths, and original texts
 
-2. Model Architecture (vanilla_model.py)
-Components:
-- Encoder: RNN/LSTM/GRU that processes input sequences
-- Decoder: RNN/LSTM/GRU that generates output sequences
-- Seq2Seq: Combined encoder-decoder architecture
+### 2. Vanilla Model Architecture (vanilla_model.py)
+1. `Encoder` Class:
+    - Purpose: Processes input sequences to create contextualized representations
+    - Cell Support: Supports RNN, LSTM, and GRU cells with configurable parameters
+    - Architecture: Embedding layer → RNN layers → Output hidden states
+    - Efficiency: Uses packed padded sequences to handle variable-length inputs
+    - Output: Returns all hidden states and final hidden state for decoder initialization
 
-Supported Cell Types:
-Vanilla RNN ('rnn')
-LSTM ('lstm')
-GRU ('gru')
+2. `Decoder` Class:
+    - Purpose: Generates output sequences one token at a time
+    - Architecture: Embedding layer → RNN layers → Linear output layer
+    - Generation: Takes previous token and hidden state, outputs next token probability
+    - Flexibility: Configurable cell type, layers, dropout, and hidden dimensions
 
-3. Training & Evaluation (training.py)
-Functions:
-- train(): Training loop with teacher forcing
-- evaluate(): Evaluation loop
-- transliterate(): Single sequence inference
-- calculate_accuracy(): Batch accuracy calculation
+3. `Seq2Seq` Class:
+    - Purpose: Combines encoder and decoder into complete sequence-to-sequence model
+    - Training: Implements teacher forcing with configurable probability
+    - Forward Pass: Encodes source sequence, then decodes target sequence step by step
+    - Inference: Supports beam search and greedy decoding for prediction generation
+    - Compatibility: Ensures encoder and decoder use same cell type and dimensions
 
+### 3. Attention Model Architecture (attention_model.py)
+1. `Attention` Class:
+    - Purpose: Implements Bahdanau (additive) attention mechanism
+    - Computation: Calculates attention weights between decoder state and all encoder outputs
+    - Architecture: Linear transformations → tanh activation → softmax normalization
+    - Output: Returns attention weights indicating which input positions to focus on
+
+2. `Encoder` Class:
+    - Purpose: Same as vanilla encoder - processes input sequences
+    - Reusability: Identical implementation to vanilla model for consistency
+    - Output: Returns all encoder hidden states needed for attention computation
+
+3. `AttentionDecoder` Class:
+    - Purpose: Enhanced decoder that incorporates attention mechanism
+    - Input: Takes embedding, previous hidden state, and all encoder outputs
+    - Attention Integration: Computes attention weights and context vector at each step
+    - Architecture: More complex than vanilla decoder due to attention components
+    - Output: Returns predictions, updated hidden state, and attention weights for visualization
+
+4. `AttentionSeq2Seq` Class:
+    - Purpose: Complete attention-based sequence-to-sequence model
+    - Enhancement: Extends vanilla seq2seq with attention mechanism
+    - Training: Maintains teacher forcing while computing attention at each step
+    - Inference: Generates predictions while tracking attention weights for analysis
+    - Visualization: Returns attention weights history for creating heatmaps
+
+### 4. Training Functions (training.py & training_attention.py)
+1. `train()` Function:
+    - Purpose: Handles model training for one epoch
+    - Process: Forward pass → loss calculation → backpropagation → parameter updates
+    - Teacher Forcing: Uses ground truth tokens with specified probability during training
+    - Optimization: Implements gradient clipping to prevent exploding gradients
+    - Loss Handling: Ignores padding tokens in loss calculation, skips SOS token in targets
+
+2. `evaluate()` Function:
+    - Purpose: Evaluates model performance without gradient updates
+    - Mode: Sets model to evaluation mode, disables teacher forcing
+    - Metrics: Calculates average loss across validation/test dataset
+    - Memory: Uses torch.no_grad() context for memory efficiency
+
+3. `transliterate()` Function:
+    - Purpose: Performs inference on individual source texts
+    - Process: Converts text to indices → encodes → decodes with greedy search
+    - Stopping: Continues until EOS token or maximum length reached
+    - Output: Returns transliterated text by converting indices back to characters
+
+4. `calculate_accuracy()` Function:
+    - Purpose: Computes exact match accuracy across entire dataset
+    - Evaluation: Processes all test samples and compares predictions to ground truth
+    - Metrics: Returns accuracy percentage and list of all predictions for analysis
+    - Storage: Saves predictions with source, predicted, and target texts for review
+
+### 5. Attention Visualization (visualize_attention.py)
+1. `generate_attention_heatmaps()` Function:
+    - Purpose: Creates grid visualization of attention patterns for multiple samples
+    - Layout: Arranges multiple attention heatmaps in organized grid format
+    - Visualization: Uses color intensity to show attention strength between source and target characters
+    - Font Support: Handles complex scripts with appropriate font configuration
+    - Output: Saves comprehensive grid visualization for multiple sample analysis
+
+2. `create_individual_attention_plots()` Function:
+    - Purpose: Generates detailed individual attention visualizations
+    - Detail Level: Provides more detailed view compared to grid visualization
+    - Annotations: Includes numerical attention values within heatmap cells
+    - Comparison: Shows source text, prediction, target text, and correctness information
+    - Quality: Higher resolution individual plots for detailed analysis
+
+3. `transliterate_with_attention()` Function:
+    - Purpose: Performs transliteration while capturing attention weights
+    - Dual Output: Returns both transliterated text and attention weight matrices
+    - Visualization Ready: Formats attention weights for direct use in plotting functions
+    - Integration: Specifically designed to work with attention model's inference method
+
+4. `plot_attention()` Function:
+    - Purpose: Core plotting utility for creating attention heatmaps
+    - Customization: Configurable titles, labels, and color schemes
+    - Character Mapping: Properly aligns source and target characters in visualization
+    - Export: Returns matplotlib figure object for further customization or saving
+
+## Output Format:
+Vanilla predictions: predictions_vanilla/ directory
+Attention predictions: predictions_attention/ directory
+Attention visualizations: predictions_attention/attention_heatmap_*.png
+Model checkpoints: .pth files (best_model.pth, best_attention_model.pth, models/\*.pth, attention_models/\*.pth) (last two not trached by git)
+
+## Model Training
+Follow the notebooks vanilla.ipynb and attention.ipynb to train and evaluate the vanilla model and attention model respectively.
