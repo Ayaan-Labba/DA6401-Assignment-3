@@ -11,6 +11,7 @@ This project implements a sequence-to-sequence (Seq2Seq) RNN model for character
 ├── attention_model.py          # Attention-based Seq2Seq model implementation
 ├── training_attention.py       # Training, evaluation, and inference functions for attention model
 ├── visualize_attention.py      # Attention visualization utilities
+├── connectivity.py             # Connectivity visualization utilities
 ├── README.md                   # This file
 ├── vanilla.ipynb               # Main training and experimentation notebook for vanilla models
 ├── attention.ipynb             # Main training and experimentation notebook for attention models
@@ -53,7 +54,7 @@ Both columns are seperated by a tab
     - Purpose: Custom batch processing for DataLoader
     - Sorting: Sorts batch by sequence length for efficient packed sequence processing
     - Padding: Pads sequences to uniform length within batch using PAD tokens
-    - Output: Returns batched tensors with source, target, lengths, and original texts
+    - **Output:** Returns batched tensors with source, target, lengths, and original texts
 
 ### 2. Vanilla Model Architecture (vanilla_model.py)
 1. `Encoder` Class:
@@ -61,7 +62,7 @@ Both columns are seperated by a tab
     - Cell Support: Supports RNN, LSTM, and GRU cells with configurable parameters
     - Architecture: Embedding layer → RNN layers → Output hidden states
     - Efficiency: Uses packed padded sequences to handle variable-length inputs
-    - Output: Returns all hidden states and final hidden state for decoder initialization
+    - **Output:** Returns all hidden states and final hidden state for decoder initialization
 
 2. `Decoder` Class:
     - Purpose: Generates output sequences one token at a time
@@ -81,19 +82,19 @@ Both columns are seperated by a tab
     - Purpose: Implements Bahdanau (additive) attention mechanism
     - Computation: Calculates attention weights between decoder state and all encoder outputs
     - Architecture: Linear transformations → tanh activation → softmax normalization
-    - Output: Returns attention weights indicating which input positions to focus on
+    - **Output:** Returns attention weights indicating which input positions to focus on
 
 2. `Encoder` Class:
     - Purpose: Same as vanilla encoder - processes input sequences
     - Reusability: Identical implementation to vanilla model for consistency
-    - Output: Returns all encoder hidden states needed for attention computation
+    - **Output:** Returns all encoder hidden states needed for attention computation
 
 3. `AttentionDecoder` Class:
     - Purpose: Enhanced decoder that incorporates attention mechanism
     - Input: Takes embedding, previous hidden state, and all encoder outputs
     - Attention Integration: Computes attention weights and context vector at each step
     - Architecture: More complex than vanilla decoder due to attention components
-    - Output: Returns predictions, updated hidden state, and attention weights for visualization
+    - **Output:** Returns predictions, updated hidden state, and attention weights for visualization
 
 4. `AttentionSeq2Seq` Class:
     - Purpose: Complete attention-based sequence-to-sequence model
@@ -120,7 +121,7 @@ Both columns are seperated by a tab
     - Purpose: Performs inference on individual source texts
     - Process: Converts text to indices → encodes → decodes with greedy search
     - Stopping: Continues until EOS token or maximum length reached
-    - Output: Returns transliterated text by converting indices back to characters
+    - **Output:** Returns transliterated text by converting indices back to characters
 
 4. `calculate_accuracy()` Function:
     - Purpose: Computes exact match accuracy across entire dataset
@@ -134,7 +135,7 @@ Both columns are seperated by a tab
     - Layout: Arranges multiple attention heatmaps in organized grid format
     - Visualization: Uses color intensity to show attention strength between source and target characters
     - Font Support: Handles complex scripts with appropriate font configuration
-    - Output: Saves comprehensive grid visualization for multiple sample analysis
+    - **Output:** Saves comprehensive grid visualization for multiple sample analysis
 
 2. `create_individual_attention_plots()` Function:
     - Purpose: Generates detailed individual attention visualizations
@@ -145,7 +146,7 @@ Both columns are seperated by a tab
 
 3. `transliterate_with_attention()` Function:
     - Purpose: Performs transliteration while capturing attention weights
-    - Dual Output: Returns both transliterated text and attention weight matrices
+    - **Dual Output:** Returns both transliterated text and attention weight matrices
     - Visualization Ready: Formats attention weights for direct use in plotting functions
     - Integration: Specifically designed to work with attention model's inference method
 
@@ -155,11 +156,31 @@ Both columns are seperated by a tab
     - Character Mapping: Properly aligns source and target characters in visualization
     - Export: Returns matplotlib figure object for further customization or saving
 
-## Output Format:
-Vanilla predictions: predictions_vanilla/ directory
-Attention predictions: predictions_attention/ directory
-Attention visualizations: predictions_attention/attention_heatmap_*.png
-Model checkpoints: .pth files (best_model.pth, best_attention_model.pth, models/\*.pth, attention_models/\*.pth) (last two not trached by git)
+### 6. Connectivity Visualization (connectivity.py)
+1. `generate_connectivity_visualization()` Function:
+    - Purpose: Creates interactive HTML visualization showing attention connectivity between input and output characters
+    - Interactivity: Hover over output characters to see which input characters receive attention
+    - Visual Design: Modern, responsive design with gradient backgrounds and smooth animations
+    - Data Processing: Handles model predictions, attention weight extraction, and normalization
+    - **Output:** Returns complete HTML string with embedded CSS and JavaScript
+
+2. `save_connectivity_visualization()` Function:
+    - Purpose: Generates and saves the interactive connectivity visualization as an HTML file
+    - File Management: Handles file writing with proper encoding for complex scripts
+    - Integration: Works with trained attention models and dataset instances
+    - Convenience: Wrapper function that combines generation and saving in one call
+
+3. `batch_connectivity_visualization()` Function:
+    - Purpose: Generates connectivity visualization from a DataLoader with multiple samples
+    - Batch Processing: Efficiently processes multiple samples from test dataset
+    - Sample Selection: Configurable number of samples to include in visualization
+    - Data Extraction: Extracts source texts from batched data with proper decodings
+
+4. `generate_heatmap_html()` Function:
+    - Purpose: Creates HTML representation of attention weights as a color-coded heatmap
+    - Grid Layout: Uses CSS Grid for responsive and aligned heatmap display
+    - Color Coding: Maps attention weights to color intensity for intuitive visualization
+    - Tooltips: Provides detailed attention values on hover for precise analysis
 
 ## Model Training
 Follow the notebooks vanilla.ipynb and attention.ipynb to train and evaluate the vanilla model and attention model respectively.
